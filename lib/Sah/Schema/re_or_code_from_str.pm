@@ -13,29 +13,30 @@ our $schema = [any => {
 
 Either Regexp object or coderef is accepted.
 
-Coercion from string is available for Regexp If string is of the form of `/.../`
-or `qr(...)`, then it will be compiled into a Regexp object. If the regex
-pattern inside `/.../` or `qr(...)` is invalid, value will be rejected.
-Currently, unlike in normal Perl, for the `qr(...)` form, only parentheses `(`
-and `)` are allowed as the delimiter. Currently modifiers `i`, `m`, and `s`
-after the second `/` are allowed.
+Coercion from string for Regexp is available if string is of the form of `/.../`
+or `qr(...)`; it will be compiled into a Regexp object. If the regex pattern
+inside `/.../` or `qr(...)` is invalid, value will be rejected. Currently,
+unlike in normal Perl, for the `qr(...)` form, only parentheses `(` and `)` are
+allowed as the delimiter. Currently modifiers `i`, `m`, and `s` after the second
+`/` are allowed.
 
-Coercion from string is available for coderef if string matches the regex
+Coercion from string for coderef is available if string matches the regex
 `qr/\Asub\s*\{.*\}\z/s`, then it will be eval'ed into a coderef. If the code
 fails to compile, the value will be rejected. Note that this means you accept
 arbitrary code from the user to execute! Please make sure first and foremost
 that this is acceptable in your case. Currently string is eval'ed in the `main`
 package, without `use strict` or `use warnings`.
 
-Coercion from string to regex literal is also available for other forms of
-string.
+Unlike the default behavior of the `re` Sah type, coercion from other string not
+in the form of `/.../` or `qr(...)` is not available. Thus, such values will be
+rejected.
 
 This schema is handy if you want to accept regex or coderef from the
 command-line.
 
 _
     of => [
-        ['re'],
+        ['obj::re'],
         ['code'],
     ],
 
@@ -45,18 +46,18 @@ _
     ],
 
     examples => [
-        {value=>'', valid=>1, summary=>'Converted to regex'},
-        {value=>'a', valid=>1, summary=>'Converted to regex'},
+        {value=>'', valid=>0, summary=>'Not to regex or code'},
+        {value=>'a', valid=>0, summary=>'Not a regex or code'},
         {value=>{}, valid=>0, summary=>'Not a regex or code'},
         {value=>qr//, valid=>1},
         {value=>sub{}, valid=>1},
 
         # re
         {value=>'//', valid=>1, validated_value=>qr//},
-        #{value=>'/foo', valid=>0, summary=>'Not converted to regex'},
-        #{value=>'qr(foo', valid=>0, summary=>'Not converted to regex'},
-        #{value=>'qr(foo(', valid=>0, summary=>'Not converted to regex'},
-        #{value=>'qr/foo/', valid=>0, summary=>'Not converted to regex'},
+        {value=>'/foo', valid=>0, summary=>'Not converted to regex'},
+        {value=>'qr(foo', valid=>0, summary=>'Not converted to regex'},
+        {value=>'qr(foo(', valid=>0, summary=>'Not converted to regex'},
+        {value=>'qr/foo/', valid=>0, summary=>'Not converted to regex'},
 
         {value=>'/foo.*/', valid=>1, validated_value=>qr/foo.*/},
         {value=>'qr(foo.*)', valid=>1, validated_value=>qr/foo.*/},
@@ -68,7 +69,7 @@ _
         # code
         {value=>'sub {}', valid=>1, code_validate=>sub { ref($_[0]) eq 'CODE' & !defined($_[0]->()) }},
         {value=>'sub{"foo"}', valid=>1, code_validate=>sub { ref($_[0]) eq 'CODE' && $_[0]->() eq 'foo' }},
-        #{value=>'sub {', valid=>0, summary=>'Not converted to code'},
+        {value=>'sub {', valid=>0, summary=>'Not converted to code'},
 
         {value=>'sub {1=2}', valid=>0, summary=>'Code does not compile'},
     ],
